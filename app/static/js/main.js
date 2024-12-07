@@ -103,36 +103,36 @@ async function handleAnalysis() {
         return;
     }
 
-    try {
-        loadingSection.hidden = false;
-        analyzeBtn.disabled = true;
-        resultsSection.hidden = true;
+    // Update button state and show loading
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    analyzeBtn.classList.add('loading');
+    analyzeBtn.disabled = true;
+    analyzeBtn.innerHTML = '<span class="icon">💈</span>Analyzing...';
 
-        const formData = new FormData();
-        formData.append('image', imageFile);
+    // Hide the form
+    document.querySelector('.analyzer-form').style.display = 'none';
 
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData
-        });
+    // Show loading animation
+    const resultSection = document.getElementById('result-section');
+    resultSection.innerHTML = '<div class="analyzing">Analyzing your photo...</div>';
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+    // Create a URL for the uploaded image
+    const imageUrl = URL.createObjectURL(imageFile);
 
-        const analysis = await response.json();
-        if (analysis.error) throw new Error(analysis.error);
-
-        displayResults(analysis);
-    } catch (error) {
-        alert(`Error: ${error.message}`);
-    } finally {
-        loadingSection.hidden = true;
+    // Wait 2 seconds then show paywall
+    setTimeout(() => {
+        showPaywall(imageUrl);
+        // Reset button state
+        analyzeBtn.classList.remove('loading');
         analyzeBtn.disabled = false;
-    }
+        analyzeBtn.innerHTML = '<span class="icon">💈</span>Show Me the Best Haircuts for Me!';
+    }, 2000);
 }
 
 function displayResults(analysis) {
+    const resultsSection = document.getElementById('resultsSection');
+    
+    // Populate results
     document.getElementById('faceShape').textContent = `Face Shape: ${analysis.face_shape}`;
     document.getElementById('hairType').textContent = `Hair Type: ${analysis.hair_type}`;
     
@@ -140,10 +140,124 @@ function displayResults(analysis) {
     recommendationsList.innerHTML = analysis.recommendations
         .map(rec => `
             <div class="recommendation-card">
-                <h3>${rec.style_name}</h3>
-                <p>${rec.reason}</p>
+                <img src="/static/images/hairstyles/${analysis.hair_type}/${rec.image}" 
+                     alt="${rec.style_name}" 
+                     class="recommendation-image">
+                <div class="recommendation-content">
+                    <h3>${rec.style_name}</h3>
+                    <p>${rec.reason}</p>
+                </div>
             </div>
         `).join('');
     
+    // Show results with blur and overlay
+    resultsSection.innerHTML = `
+        <div class="results-card">
+            <div class="blurred-section">
+                <h2>Your Analysis Results</h2>
+                <div id="faceShape" class="result-item"></div>
+                <div id="hairType" class="result-item"></div>
+                <div class="recommendations-grid">
+                    ${recommendationsList.innerHTML}
+                </div>
+            </div>
+            <div class="unlock-overlay">
+                <h3>Your Results Are Ready!</h3>
+                <p>Unlock your personalized haircut recommendations</p>
+                <button class="unlock-button">Unlock Results</button>
+            </div>
+        </div>
+    `;
+    
     resultsSection.hidden = false;
+    setTimeout(() => resultsSection.classList.add('visible'), 100);
+}
+
+function showPaywall(imageUrl) {
+    const resultSection = document.getElementById('result-section');
+    resultSection.innerHTML = `
+        <div class="uploaded-image">
+            <img src="${imageUrl}" alt="Uploaded photo" />
+        </div>
+        <div class="result-card">
+            <div class="result-content blurred">
+                <div class="face-shape-section">
+                    <h3>Your Face Shape Analysis</h3>
+                    <div class="analysis-details">
+                        <p>Face Shape: Oval</p>
+                        <p>Key Features: Balanced proportions</p>
+                    </div>
+                </div>
+                
+                <div class="recommendations-section">
+                    <h3>Recommended Haircuts</h3>
+                    <div class="recommendations-grid">
+                        <div class="recommendation-item">
+                            <div class="style-image"></div>
+                            <h4>Classic Taper</h4>
+                        </div>
+                        <div class="recommendation-item">
+                            <div class="style-image"></div>
+                            <h4>Textured Crop</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="paywall-overlay">
+                <h3>Your Analysis is Ready!</h3>
+                <div class="feature-questions">
+                    <p>✨ What's your ideal haircut?</p>
+                    <p>💇‍♂️ Which styles will enhance you from a mid 6 to a solid 8?</p>
+                    <p>📏 What length works best for your face shape?</p>
+                </div>
+                <button class="unlock-button" onclick="handlePurchase()">
+                    Unlock Your Personalized Results
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// Update the existing handleUpload function
+async function handleUpload(event) {
+    event.preventDefault();
+    const fileInput = document.getElementById('image-upload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select an image first');
+        return;
+    }
+
+    // Show loading animation
+    const resultSection = document.getElementById('result-section');
+    resultSection.innerHTML = '<div class="analyzing">Analyzing your photo...</div>';
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            // Wait 2 seconds before showing paywall
+            setTimeout(() => {
+                showPaywall(data.image_path);
+            }, 2000);
+        } else {
+            resultSection.innerHTML = `<div class="error">${data.error}</div>`;
+        }
+    } catch (error) {
+        resultSection.innerHTML = '<div class="error">An error occurred. Please try again.</div>';
+    }
+}
+
+function handlePurchase() {
+    // Implement payment processing logic here
+    console.log('Purchase button clicked');
 } 
