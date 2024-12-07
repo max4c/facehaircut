@@ -9,6 +9,46 @@ const loadingSection = document.getElementById('loadingSection');
 const resultsSection = document.getElementById('resultsSection');
 const hairTextureSelect = document.getElementById('hairTextureSelect');
 
+// Add this hairstyle mapping object
+const HAIRSTYLE_RECOMMENDATIONS = {
+    "oval": {
+        "straight": ["Side Part with Taper Fade", "Mid Fade Clean", "Pompadour"],
+        "wavy": ["Medium Length Styled", "Quiff", "Swept Back Medium"],
+        "loose-curly": ["Volume Cut Curly", "Medium Length Layered", "Mid Fade Clean"],
+        "tight-curly": ["Medium Afro", "High Fade Clean", "Natural Coils"]
+    },
+    "square": {
+        "straight": ["Pompadour", "Mid Fade Clean", "Side Part with Taper Fade"],
+        "wavy": ["Messy Natural", "Medium Length Layered", "Quiff"],
+        "loose-curly": ["Volume Cut Curly", "Medium Length Layered", "Mid Fade Clean"],
+        "tight-curly": ["Short Afro Fade", "Natural Coils", "High Fade Clean"]
+    },
+    "round": {
+        "straight": ["High Fade Clean", "Angular Fringe", "Side Part with Taper Fade"],
+        "wavy": ["Quiff", "Spiky Textured", "Mid Fade Clean"],
+        "loose-curly": ["Volume Cut Curly", "High Fade Clean", "Medium Length Styled"],
+        "tight-curly": ["High Fade Clean", "Medium Afro", "Short Afro Fade"]
+    },
+    "diamond": {
+        "straight": ["Textured Fringe", "Medium Length Styled", "Mid Fade Clean"],
+        "wavy": ["Messy Natural", "Medium Length Layered", "Swept Back Medium"],
+        "loose-curly": ["Volume Cut Curly", "Medium Length Layered", "Mid Fade Clean"],
+        "tight-curly": ["Medium Afro", "Natural Coils", "Short Afro Fade"]
+    },
+    "heart": {
+        "straight": ["Medium Length Styled", "Side Swept Undercut", "French Crop"],
+        "wavy": ["Messy Natural", "Medium Length Layered", "Mid Fade Clean"],
+        "loose-curly": ["Medium Length Layered", "Volume Cut Curly", "Messy Natural"],
+        "tight-curly": ["Medium Afro", "Natural Coils", "Mid Fade Clean"]
+    },
+    "oblong": {
+        "straight": ["French Crop", "Low Fade", "Side Part with Taper Fade"],
+        "wavy": ["French Crop", "Medium Length Styled", "Mid Fade Clean"],
+        "loose-curly": ["Volume Cut Curly", "Medium Length Layered", "Low Fade"],
+        "tight-curly": ["Short Afro Fade", "Natural Coils", "Low Fade"]
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     if (fileUpload) {
         // Prevent the click event from being handled twice
@@ -103,30 +143,110 @@ async function handleAnalysis() {
         return;
     }
 
+    const hairType = document.getElementById('hairTextureSelect').value;
+    if (!hairType) {
+        alert('Please select your hair type');
+        return;
+    }
+
     // Update button state and show loading
     const analyzeBtn = document.getElementById('analyzeBtn');
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
     analyzeBtn.innerHTML = '<span class="icon">💈</span>Analyzing...';
 
-    // Hide the form
-    document.querySelector('.analyzer-form').style.display = 'none';
-
     // Show loading animation
     const resultSection = document.getElementById('result-section');
     resultSection.innerHTML = '<div class="analyzing">Analyzing your photo...</div>';
 
-    // Create a URL for the uploaded image
-    const imageUrl = URL.createObjectURL(imageFile);
+    const formData = new FormData();
+    formData.append('image', imageFile);
 
-    // Wait 2 seconds then show paywall
-    setTimeout(() => {
-        showPaywall(imageUrl);
-        // Reset button state
+    try {
+        const response = await fetch('/analyze', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        console.log("Response data:", data);  // Debug log
+        
+        if (data.error) {
+            resultSection.innerHTML = `<div class="error">${data.error}</div>`;
+            return;
+        }
+
+        const faceShape = data.face_shape;
+        const hairType = document.getElementById('hairTextureSelect').value;
+        
+        console.log("Face shape:", faceShape);  // Debug log
+        console.log("Hair type:", hairType);    // Debug log
+        
+        if (!HAIRSTYLE_RECOMMENDATIONS[faceShape] || !HAIRSTYLE_RECOMMENDATIONS[faceShape][hairType]) {
+            resultSection.innerHTML = `<div class="error">No recommendations found for this combination</div>`;
+            return;
+        }
+
+        const recommendations = HAIRSTYLE_RECOMMENDATIONS[faceShape][hairType];
+        console.log("Recommendations:", recommendations);  // Debug log
+        
+        // Display results
+        resultSection.innerHTML = `
+            <div class="result-card">
+                <div class="face-shape-section">
+                    <h3>Your Face Shape: ${faceShape}</h3>
+                </div>
+                <div class="recommendations-section">
+                    <h3>Recommended Haircuts for ${hairType} Hair</h3>
+                    <div class="recommendations-grid">
+                        ${recommendations.map(style => {
+                            let filename = style.toLowerCase();
+                            const filenameMap = {
+                                'side part with taper fade': 'mid fade clean',
+                                'medium length styled': 'medium length layered',
+                                'swept back medium': 'slick back undercut',
+                                'volume cut curly': 'natural coils',
+                                'high fade clean': 'mid fade clean',
+                                'short afro fade': 'medium afro fade',
+                                'messy natural': 'medium length layered',
+                                'angular fringe': 'quiff',
+                                'spiky textured': 'quiff',
+                                'textured fringe': 'quiff',
+                                'side swept undercut': 'slick back undercut',
+                                'french crop': 'quiff',
+                                'pompadour': 'pompadour',
+                                'mid fade clean': 'mid fade clean',
+                                'medium afro': 'medium afro fade',
+                                'natural coils': 'natural coils'
+                            };
+
+                            filename = filenameMap[filename] || filename.replace(/ /g, '-');
+
+                            return `
+                                <div class="recommendation-item">
+                                    <div class="image-container">
+                                        <img src="/static/js/images/hairstyles/${filename}.jpg" 
+                                             alt="${style}" 
+                                             class="style-image"
+                                             onerror="this.src='/static/js/images/hairstyles/default.jpg'">
+                                    </div>
+                                    <h4>${style}</h4>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error:', error);
+        resultSection.innerHTML = '<div class="error">An error occurred. Please try again.</div>';
+    } finally {
         analyzeBtn.classList.remove('loading');
         analyzeBtn.disabled = false;
         analyzeBtn.innerHTML = '<span class="icon">💈</span>Show Me the Best Haircuts for Me!';
-    }, 2000);
+    }
 }
 
 function displayResults(analysis) {
@@ -207,9 +327,9 @@ function showPaywall(imageUrl) {
             <div class="paywall-overlay">
                 <h3>Your Analysis is Ready!</h3>
                 <div class="feature-questions">
-                    <p>✨ What's your ideal haircut?</p>
-                    <p>💇‍♂️ Which styles will enhance you from a mid 6 to a solid 8?</p>
-                    <p>📏 What length works best for your face shape?</p>
+                    <p> What length works best for your face shape?</p>
+                    <p>💇‍♂️ Is a fade what you need to go from a mid 6 to a solid 8?</p>
+                    <p>💫 Are you finally gonna have the hair to catch a Baddie?</p>
                 </div>
                 <button class="unlock-button" onclick="handlePurchase()">
                     Unlock Your Personalized Results
@@ -258,6 +378,6 @@ async function handleUpload(event) {
 }
 
 function handlePurchase() {
-    // Implement payment processing logic here
-    console.log('Purchase button clicked');
+    // Redirect to Stripe payment page
+    window.location.href = 'https://buy.stripe.com/28o2aSeQw5rL4M0144';
 } 
