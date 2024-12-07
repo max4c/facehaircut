@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Haircut Recommender</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">Haircuts for Your Face Shape</h1>
+        
+        <div class="analyzer-form">
+            <div class="input-group">
+                <div class="input-label">
+                    <i class="icon">🪮</i>
+                    <span>Your Hair Type</span>
+                </div>
+                <select id="hairTextureSelect" class="styled-select">
+                    <option value="" disabled selected>Select your hair type</option>
+                    <option value="straight">Straight</option>
+                    <option value="wavy">Wavy</option>
+                    <option value="loose-curly">Loose Curly</option>
+                    <option value="tight-curly">Tight Curly/Coily</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <div class="input-label">
+                    <i class="icon">📸</i>
+                    <span>Your Selfie</span>
+                </div>
+                <div class="file-upload" id="uploadArea">
+                    <input type="file" 
+                           id="imageInput" 
+                           accept="image/*" 
+                           capture="environment"
+                           hidden>
+                    <div class="upload-text">Choose File</div>
+                    <img id="imagePreview" class="preview-image" hidden>
+                </div>
+            </div>
+
+            <button id="analyzeBtn" class="gradient-button" disabled onclick="handleAnalysis()">
+                💈 Show Me the Best Haircuts for Me!
+            </button>
+        </div>
+
+        <div id="loadingSection" class="loading-section" hidden>
+            <div class="spinner"></div>
+            <p>Analyzing your photo...</p>
+        </div>
+
+        <div id="resultsSection" class="results-section" hidden>
+            <div class="analysis-results">
+                <h2>Your Analysis</h2>
+                <div id="faceShape" class="result-item"></div>
+                <div id="hairType" class="result-item"></div>
+            </div>
+            
+            <div class="recommendations">
+                <h2>Recommended Styles</h2>
+                <div id="recommendationsList" class="recommendations-grid"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html> 

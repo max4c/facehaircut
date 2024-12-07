@@ -1,0 +1,18 @@
+haircut_recommender/
+├── app/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── models.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── vision.py
+│   │   └── image_handler.py
+│   ├── static/
+│   │   ├── css/
+│   │   │   └── style.css
+│   │   └── js/
+│   │       └── main.js
+│   └── templates/
+│       └── index.html
+├── config.py
+└── run.py 
